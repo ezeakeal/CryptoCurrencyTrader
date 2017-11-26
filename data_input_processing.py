@@ -13,11 +13,14 @@ SEC_IN_DAY = 86400
 SYMBOL_DICTIONARY = {
     'BTC': 'bitcoin',
     'ETH': 'ethereum',
+    'XMR': 'monero',
 }
 
 SENTIMENT_KEYWORDS = {
     'BTC': ['bitcoin', 'bitcoins', 'xbt', 'btc', 'Bitcoin', 'Bitcoins', 'BTC', 'XBT'],
-    'ETH': ['ethereum', 'ETH'],
+    'ETH': ['ethereum', 'ETH', 'eth'],
+    'LTC': ['lightcoin', 'ETH', 'ltc'],
+    'XMR': ['monero', 'XMR', 'xmr'],
 }
 
 
@@ -56,6 +59,7 @@ class Data:
         self.scraper_score_texts = []
         self.classification_score = []
 
+        print ("Initializing Data object")
         if web_flag:
             self.candle_input_web(currency_pair, start, end, period)
         else:
@@ -86,11 +90,14 @@ class Data:
             self.low[i] = np.min(candle_array[loop_start:loop_start + period_index, 3])
 
     def candle_input_web(self, currency_pair, start, end, period):
+        print ("Getting candle data from web")
         poloniex_session = poloniex(poloniex_API_key, poloniex_API_secret)
 
         candle_json = poloniex_session.returnChartData(currency_pair, start, end, period)
 
         candle_length = len(candle_json[u'candleStick'])
+        print ("Getting candle data from web: %s" % candle_length)
+
         self.volume = nan_array_initialise(candle_length)
         self.date = nan_array_initialise(candle_length)
         self.close = nan_array_initialise(candle_length)

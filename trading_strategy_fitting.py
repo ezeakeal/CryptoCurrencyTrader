@@ -1,11 +1,14 @@
+import traceback
+
 import numpy as np
+import sys
 from time import time
 from data_input_processing import Data, train_test_validation_indices, generate_training_variables
 from strategy_evaluation import post_process_training_results, output_strategy_results
 from machine_learning import random_forest_fitting, svm_fitting, adaboost_fitting, gradient_boosting_fitting,\
     extra_trees_fitting, tensorflow_fitting, tensorflow_sequence_fitting
 
-SEC_IN_DAY = 86400
+SEC_IN_DAY = 24*60*60
 
 
 def meta_fitting(fitting_inputs, fitting_targets, strategy_dictionary):
@@ -41,12 +44,19 @@ def meta_fitting(fitting_inputs, fitting_targets, strategy_dictionary):
     return fitting_dictionary
 
 
-def input_processing(data_to_predict_local, data_input_2, strategy_dictionary):
+def input_processing(data_input_1, data_input_2, strategy_dictionary):
+    print("Generating training variables [1]")
     fitting_inputs, continuous_targets, classification_targets = generate_training_variables(
-        data_to_predict_local, strategy_dictionary)
+        data_input_1, strategy_dictionary)
+
+    print("Generating training variables [2]")
     fitting_inputs_2, fitting_targets_2, classification_targets_2 = generate_training_variables(
-        data_input_2, strategy_dictionary, prior_data_obj=data_to_predict_local)
+        data_input_2, strategy_dictionary, prior_data_obj=data_input_1)
+
+    print("Trimming inputs")
     fitting_inputs, fitting_inputs_2 = trim_inputs(fitting_inputs, fitting_inputs_2)
+
+    print("Hstacking")
     fitting_inputs = np.hstack((fitting_inputs, fitting_inputs_2))
 
     return fitting_inputs, continuous_targets, classification_targets
@@ -71,6 +81,7 @@ def tic():
 def retrieve_data(ticker, scraper_currency, strategy_dictionary, filename):
     data_local = None
     while data_local is None:
+        print ("Attempting data retrieval")
         try:
             if strategy_dictionary['web_flag']:
                 end = time() - strategy_dictionary['offset'] * SEC_IN_DAY
@@ -87,7 +98,12 @@ def retrieve_data(ticker, scraper_currency, strategy_dictionary, filename):
                     offset=strategy_dictionary['offset'], filename=filename,
                     n_days=strategy_dictionary['n_days'])
         except Exception:
-            pass
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            print("*** print_tb:")
+            traceback.print_tb(exc_traceback, limit=1, file=sys.stdout)
+            print("*** print_exception:")
+            traceback.print_exception(exc_type, exc_value, exc_traceback, file=sys.stdout)
+            sys.exit(1)
 
     data_local.normalise_data()
 
@@ -109,8 +125,8 @@ def offset_scan_validation(strategy_dictionary, data_to_predict, fitting_inputs,
         total_profit += profit_fraction
 
     underlined_output('Averages: ')
-    print 'Total profit: ', total_profit
-    print 'Average error: ', total_error
+    print('Total profit: %s' % total_profit)
+    print('Average error: %s' % total_error)
 
 
 def tensorflow_offset_scan_validation(strategy_dictionary, data_to_predict, fitting_inputs, fitting_targets, offsets):
@@ -128,18 +144,20 @@ def tensorflow_offset_scan_validation(strategy_dictionary, data_to_predict, fitt
         total_profit += profit_fraction
 
     underlined_output('Averages: ')
-    print 'Total profit: ', total_profit
-    print 'Average error: ', total_error
+    print ('Total profit: %s' % total_profit)
+    print ('Average error: %s' % total_error)
 
 
 def import_data(strategy_dictionary):
-    data_to_predict = retrieve_data(
-        strategy_dictionary['ticker_1'], strategy_dictionary['scraper_currency_1'], strategy_dictionary,
-        strategy_dictionary['filename1'])
-    data_2 = retrieve_data(strategy_dictionary['ticker_2'], strategy_dictionary['scraper_currency_2'],
-                           strategy_dictionary, strategy_dictionary['filename2'])
+    print ('Retrieving candlestick data for ticker1[%s]' % strategy_dictionary['ticker_1'])
+    data_1 = retrieve_data(
+        strategy_dictionary['ticker_1'], strategy_dictionary['scraper_currency_1'], strategy_dictionary, strategy_dictionary['filename1'])
 
-    return data_to_predict, data_2
+    print('Retrieving candlestick data for ticker2[%s]' % strategy_dictionary['ticker_2'])
+    data_2 = retrieve_data(
+        strategy_dictionary['ticker_2'], strategy_dictionary['scraper_currency_2'], strategy_dictionary, strategy_dictionary['filename2'])
+
+    return data_1, data_2
 
 
 def fit_strategy(strategy_dictionary, data_to_predict, fitting_inputs, fitting_targets):
@@ -166,7 +184,8 @@ def fit_tensorflow(strategy_dictionary, data_to_predict, fitting_inputs, fitting
             strategy_dictionary)
 
     else:
-        fitting_dictionary, error = tensorflow_fitting(train_indices, test_indices, validation_indices, fitting_inputs,
+        fitting_dictionary, error = tensorflow_fitting(
+            train_indices, test_indices, validation_indices, fitting_inputs,
                                                        fitting_targets)
 
     fitting_dictionary['train_indices'] = train_indices
@@ -180,6 +199,4 @@ def fit_tensorflow(strategy_dictionary, data_to_predict, fitting_inputs, fitting
 
 
 def underlined_output(string):
-    print string
-    print '----------------------'
-    print '\n'
+    print ('%s\n----------------------\n' % string)

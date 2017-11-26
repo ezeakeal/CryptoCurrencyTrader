@@ -7,10 +7,15 @@ from data_input_processing import preprocessing_inputs
 
 
 def random_search(strategy_dictionary_local, n_iterations):
+    print("Ticking")
     toc = tic()
+    print("Importing data")
     data_local, data_2 = import_data(strategy_dictionary_local)
+    print("Finished Imported data")
+
     fitting_inputs_local, continuous_targets, classification_targets = input_processing(
         data_local, data_2, strategy_dictionary)
+    print("Targets determined")
 
     counter = 0
     error = 1e5
@@ -18,15 +23,16 @@ def random_search(strategy_dictionary_local, n_iterations):
     strategy_dictionary_optimum = []
     fitting_targets_local = []
     while counter < n_iterations:
+        print("Starting iteration %s" % counter)
         counter += 1
 
-        strategy_dictionary['sequence_flag'] = np.random.choice([True, False])
+        # strategy_dictionary['sequence_flag'] = np.random.choice([True, False])
+        strategy_dictionary['sequence_flag'] = False
 
         if strategy_dictionary['sequence_flag']:
             strategy_dictionary_local = randomise_sequence_dictionary_inputs(strategy_dictionary_local)
         else:
             strategy_dictionary_local = randomise_dictionary_inputs(strategy_dictionary_local)
-
 
         if strategy_dictionary_local['regression_mode'] == 'classification':
             fitting_targets_local = classification_targets
@@ -43,6 +49,7 @@ def random_search(strategy_dictionary_local, n_iterations):
             error = error_loop
             strategy_dictionary_optimum = strategy_dictionary_local
             fitting_dictionary_optimum = fitting_dictionary
+        print("Completed iteration")
 
     underlined_output('Best strategy fit')
     output_strategy_results(strategy_dictionary_optimum, fitting_dictionary_optimum, data_local, toc)
@@ -65,34 +72,35 @@ def randomise_sequence_dictionary_inputs(strategy_dictionary_local):
 
 if __name__ == '__main__':
     strategy_dictionary = {
-        'trading_currencies': ['USDT', 'BTC'],
+        'trading_currencies': ['BTC', 'XMR'],
         'ticker_1': 'USDT_BTC',
-        'ticker_2': 'BTC_ETH',
+        'ticker_2': 'BTC_XMR',
         'scraper_currency_1': 'BTC',
-        'scraper_currency_2': 'ETH',
+        'scraper_currency_2': 'XMR',
         'candle_size': 1800,
-        'n_days': 40,
-        'offset': 0,
+        'n_days': 60,
+        'offset': 30,
         'bid_ask_spread': 0.004,
         'transaction_fee': 0.0025,
         'train_test_validation_ratios': [0.5, 0.25, 0.25],
         'output_flag': True,
-        'plot_flag': False,
+        'plot_flag': True,
         'target_score': 'idealstrategy',
         'windows': [10, 50, 100],
-        'regression_mode': 'regression',
+        'regression_mode': 'classification',
         'preprocessing': 'None',
         'ml_mode': 'tensorflow',
-        'sequence_flag': False,
+        'sequence_flag': True,
         'output_units': 1,
         'web_flag': True,
-        'filename1': "USDT_BTC.csv",
-        'filename2': "BTC_ETH.csv",
+        'filename1': "USDT_XMR.csv",
+        'filename2': "BTC_XMR.csv",
         'scraper_page_limit': 10,
     }
 
-    search_iterations = 5
+    search_iterations = 20
 
+    print("Starting search")
     strategy_dictionary, data_to_predict, fitting_inputs, fitting_targets = random_search(
         strategy_dictionary, search_iterations)
 
@@ -101,4 +109,4 @@ if __name__ == '__main__':
 
     tensorflow_offset_scan_validation(strategy_dictionary, data_to_predict, fitting_inputs, fitting_targets, offsets)
 
-    print strategy_dictionary
+    print (strategy_dictionary)

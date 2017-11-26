@@ -119,20 +119,20 @@ def output_strategy_results(strategy_dictionary, fitting_dictionary, data_to_pre
 
     profit_factor = []
     if strategy_dictionary['output_flag']:
-        print "Fitting time: ", toc()
+        print("Fitting time: %s" % toc())
         
         profit_factor = fitting_dictionary['portfolio_value'][-1] * prediction_data[0]\
                         / (fitting_dictionary['portfolio_value'][0] * prediction_data[-1]) - 1
 
-        print "Fractional profit compared to buy and hold: ", profit_factor
-        print "Mean squared error: ", fitting_dictionary['error']
-        print "Number of days: ", strategy_dictionary['n_days']
-        print "Candle time period:", strategy_dictionary['candle_size']
-        print "Fitting model: ", strategy_dictionary['ml_mode']
-        print "Regression/classification: ", strategy_dictionary['regression_mode']
-        print "Number of trades: ", fitting_dictionary['n_trades']
-        print "Offset: ", strategy_dictionary['offset']
-        print "\n"
+        print ("Fractional profit compared to buy and hold: %s" % profit_factor)
+        print ("Mean squared error: %s" % fitting_dictionary['error'])
+        print ("Number of days: %s" % strategy_dictionary['n_days'])
+        print ("Candle time period:%s" % strategy_dictionary['candle_size'])
+        print ("Fitting model: %s" % strategy_dictionary['ml_mode'])
+        print ("Regression/classification: %s" % strategy_dictionary['regression_mode'])
+        print ("Number of trades: %s" % fitting_dictionary['n_trades'])
+        print ("Offset: %s" % strategy_dictionary['offset'])
+
 
     if strategy_dictionary['plot_flag']:
         plt.figure(1)

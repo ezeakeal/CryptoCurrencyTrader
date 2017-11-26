@@ -1,5 +1,8 @@
 import urllib
-import urllib2
+try:
+    import urllib.request as urllib2
+except ImportError:
+    import urllib2
 import json
 import time
 import hmac,hashlib
@@ -19,7 +22,7 @@ class poloniex:
         # Add timestamps if there isnt one but is a datetime
         if('return' in after):
             if(isinstance(after['return'], list)):
-                for x in xrange(0, len(after['return'])):
+                for x in range(0, len(after['return'])):
                     if(isinstance(after['return'][x], dict)):
                         if('datetime' in after['return'][x] and 'timestamp' not in after['return'][x]):
                             after['return'][x]['timestamp'] = float(createTimeStamp(after['return'][x]['datetime']))
@@ -45,9 +48,9 @@ class poloniex:
         else:
             req['command'] = command
             req['nonce'] = int(time.time()*1000)
-            post_data = urllib.urlencode(req)
+            post_data = urllib.parse.urlencode(req).encode('utf8')
 
-            sign = hmac.new(self.Secret, post_data, hashlib.sha512).hexdigest()
+            sign = hmac.new(self.Secret.encode('utf8'), post_data, hashlib.sha512).hexdigest()
             headers = {
                 'Sign': sign,
                 'Key': self.APIKey

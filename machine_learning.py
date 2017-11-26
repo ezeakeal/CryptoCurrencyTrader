@@ -12,6 +12,12 @@ from shutil import rmtree
 from os.path import exists
 from scipy import stats
 
+from polyaxon_schemas.optimizers import AdamConfig
+from polyaxon_schemas.losses import SigmoidCrossEntropyConfig
+from polyaxon_schemas.metrics import AccuracyConfig
+
+from tensorflow.python.client import device_lib
+print ("Tensor devices: %s" % device_lib.list_local_devices())
 
 def svm_fitting(input_data, target_data, train_indices, test_indices, validation_indices, strategy_dictionary):
     param_set = {'kernel': ['rbf'],
@@ -119,6 +125,9 @@ def tensorflow_fitting(train_indices, test_indices, validation_indices, input_da
 
 def tensorflow_sequence_fitting(
         output_dir, train_indices, test_indices, validation_indices, x, y, strategy_dictionary, train_steps=1000):
+
+    def graph_fn(mode, features):
+        x = plx
     x = x.astype(np.float32)
     y = y.astype(np.float32)
 
@@ -134,14 +143,14 @@ def tensorflow_sequence_fitting(
         'eval_every_n_steps': 5,
         'train_steps': train_steps,
         'train_input_data_config': {
-            'input_type': plx.configs.InputDataConfig.NUMPY,
+            'input_type': 'NUMPY',
             'pipeline_config': {'name': 'train', 'batch_size': 64, 'num_epochs': 1,
                                 'shuffle': False},
             'x': {'x': x[train_indices]},
             'y': y[train_indices]
         },
         'eval_input_data_config': {
-            'input_type': plx.configs.InputDataConfig.NUMPY,
+            'input_type': 'NUMPY',
             'pipeline_config': {'name': 'eval', 'batch_size': 32, 'num_epochs': 1,
                                 'shuffle': False},
             'x': {'x': np.array(x[test_indices])},
@@ -160,15 +169,13 @@ def tensorflow_sequence_fitting(
                 'definition': [
                     (plx.layers.LSTM, {'num_units': strategy_dictionary['num_units'],
                                        'num_layers': strategy_dictionary['num_layers']}),
-                    (plx.layers.FullyConnected, {'num_units': strategy_dictionary['output_units']}),
+                    (plx.layers.Dense, {'num_units': strategy_dictionary['output_units']}),
                 ]
             }
         }
     }
     experiment_config = plx.configs.ExperimentConfig.read_configs(config)
     xp = plx.experiments.create_experiment(experiment_config)
-    xp.continuous_train_and_evaluate()
-
     train_score = [i['results'] for i in xp.estimator.predict(numpy_input_fn({'x': x[train_indices]}, shuffle=False))]
     predicted = [i['results'] for i in xp.estimator.predict(numpy_input_fn({'x': x[test_indices]}, shuffle=False))]
     validation = [i['results'] for i in xp.estimator.predict(numpy_input_fn(
@@ -184,7 +191,6 @@ def tensorflow_sequence_fitting(
     }
 
     return fitting_dictionary, fitting_dictionary['error']
-
 
 def input_fn(input_local, target):
     return tf.constant(input_local), tf.constant(target)
